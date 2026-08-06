@@ -1,0 +1,7 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate   # the SQL scripts own the schema in the container stack
+logging:
+  level:
+    com.investwise: INFO

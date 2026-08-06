@@ -48,7 +48,7 @@ public class EmailService {
     }
 
     public void sendVerification(User user, String token) {
-        String link = frontendUrl + "/verify-email?token=" + token;
+        String link = "http://localhost:8081/api/v1/auth/verify-email?token=" + token;
         send(user.getEmail(), "Verify your InvestWise account", body(user.getFirstName(),
                 "Confirm your email address to activate goal planning and personalised recommendations.",
                 "Verify my email", link, "This link expires in 24 hours."));

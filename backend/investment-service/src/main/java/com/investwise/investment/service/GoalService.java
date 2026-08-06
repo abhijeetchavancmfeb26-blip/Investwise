@@ -125,10 +125,14 @@ public class GoalService {
 
         // Celebrate exactly once, on the transition rather than on every later save
         if (saved.getStatus() == Enums.GoalStatus.ACHIEVED && before != Enums.GoalStatus.ACHIEVED) {
-            rabbit.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.RK_NOTIFY,
-                    new Events.Notify(user.id(), "Goal achieved",
-                            "You reached your target for \"%s\".".formatted(saved.getTitle()),
-                            "SUCCESS", "/goals"));
+            try {
+                rabbit.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.RK_NOTIFY,
+                        new Events.Notify(user.id(), "Goal achieved",
+                                "You reached your target for \"%s\".".formatted(saved.getTitle()),
+                                "SUCCESS", "/goals"));
+            } catch (Exception ex) {
+                log.warn("Failed to publish goal achieved notification to RabbitMQ: {}", ex.getMessage());
+            }
             log.info("User {} achieved goal {}", user.id(), saved.getId());
         }
         return view(saved, user.id());

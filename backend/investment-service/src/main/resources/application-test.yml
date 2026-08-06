@@ -1,0 +1,25 @@
+# In-memory profile for the test suite: no MySQL, Mongo or RabbitMQ required.
+spring:
+  datasource:
+    url: jdbc:h2:mem:investwise_inv;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+
+investwise:
+  jwt:
+    secret: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVm
+  mail:
+    enabled: false
+
+razorpay:
+  key-id: rzp_test_unit
+  key-secret: unit_test_secret

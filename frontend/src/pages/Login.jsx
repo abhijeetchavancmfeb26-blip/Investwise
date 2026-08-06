@@ -82,14 +82,15 @@ export default function Login() {
         <Submit loading={isSubmitting} disabled={!isValid} className="w-full">Sign in</Submit>
       </form>
 
-      <div className="mt-6 rounded border border-sky-200 bg-sky-50 p-3 text-xs text-sky-800">
+      {/* <div className="mt-6 rounded border border-sky-200 bg-sky-50 p-3 text-xs text-sky-800">
         <p className="font-semibold">Demo credentials</p>
         <ul className="mt-1 space-y-0.5">
           <li>Investor: rahul.sharma@example.com / User@123</li>
           <li>Premium: priya.nair@example.com / User@123</li>
           <li>Admin: admin@investwise.in / Admin@123</li>
         </ul>
-      </div>
+      </div> */}
     </div>
   );
 }
+

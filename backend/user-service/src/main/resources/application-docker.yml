@@ -1,0 +1,12 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate   # the SQL scripts own the schema in the container stack
+logging:
+  level:
+    com.investwise: INFO
+
+management:
+  health:
+    mail:
+      enabled: false   # no SMTP in docker by default; mail is disabled via INVESTWISE_MAIL_ENABLED

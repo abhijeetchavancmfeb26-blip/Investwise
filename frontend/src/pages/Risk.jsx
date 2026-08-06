@@ -7,7 +7,7 @@ import { get, post, toError } from '../lib/api';
 import { useFetch } from '../lib/useFetch';
 import { ErrorBox, Loading, PageTitle, Progress } from '../components/Ui';
 import { BarChart, ChartBox, DoughnutChart } from '../components/Charts';
-import { Checkbox, FormError, Input, Select, Submit } from  '../components/Form';
+import { Checkbox, FormError, Input, Select, Submit } from '../components/Form';
 import { title } from '../lib/format';
 
 export default function Risk() {
