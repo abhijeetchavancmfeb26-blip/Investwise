@@ -10,7 +10,6 @@
     </parent>
     <artifactId>investment-service</artifactId>
     <name>InvestWise-Lite :: Investment Service</name>
-    
 
     <dependencies>
         <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>

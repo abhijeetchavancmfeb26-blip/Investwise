@@ -1,0 +1,161 @@
+# =====================================================================
+#  InvestWise-Lite - full stack
+#  MySQL 8 + MongoDB 7 + RabbitMQ 3.13 + 3 services + SPA
+#
+#    frontend          http://localhost:5173
+#    api-gateway       http://localhost:8080   (single entry point)
+#    user-service      http://localhost:8081
+#    investment-service http://localhost:8082
+#    RabbitMQ console  http://localhost:15672  (investwise / investwise123)
+#
+#  Start:  docker compose up --build
+# =====================================================================
+
+name: investwise-lite
+
+x-rabbit: &rabbit
+  SPRING_RABBITMQ_HOST: rabbitmq
+  SPRING_RABBITMQ_USERNAME: investwise
+  SPRING_RABBITMQ_PASSWORD: investwise123
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: iwl-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports: ["3307:3306"]
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Both databases, all tables and the seed rows are created by these two
+      # scripts, in filename order, the first time the volume is empty.
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [iwl]
+
+  mongodb:
+    image: mongo:7.0
+    container_name: iwl-mongo
+    restart: unless-stopped
+    ports: ["27017:27017"]
+    volumes:
+      - mongo_data:/data/db
+      - ./database/mongo-init.js:/docker-entrypoint-initdb.d/01-init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [iwl]
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: iwl-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: investwise
+      RABBITMQ_DEFAULT_PASS: investwise123
+    ports: ["5672:5672", "15672:15672"]
+    volumes:
+      - rabbit_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [iwl]
+
+  user-service:
+    build:
+      context: ./backend
+      dockerfile: user-service/Dockerfile
+    container_name: iwl-user-service
+    restart: unless-stopped
+    depends_on:
+      mysql: {condition: service_healthy}
+      mongodb: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+    environment:
+      <<: *rabbit
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/investwise_user?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata
+      SPRING_DATASOURCE_USERNAME: investwise
+      SPRING_DATASOURCE_PASSWORD: investwise123
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/investwise_logs
+      INVESTWISE_JWT_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVm
+      INVESTWISE_FRONTEND_URL: http://localhost:5173
+      INVESTWISE_MAIL_ENABLED: ${INVESTWISE_MAIL_ENABLED:-false}
+      INVESTWISE_MAIL_USERNAME: ${INVESTWISE_MAIL_USERNAME:-}
+      INVESTWISE_MAIL_PASSWORD: ${INVESTWISE_MAIL_PASSWORD:-}
+      INVESTWISE_MAIL_FROM: ${INVESTWISE_MAIL_FROM:-no-reply@investwise.in}
+    ports: ["8081:8081"]
+    networks: [iwl]
+
+  investment-service:
+    build:
+      context: ./backend
+      dockerfile: investment-service/Dockerfile
+    container_name: iwl-investment-service
+    restart: unless-stopped
+    depends_on:
+      mysql: {condition: service_healthy}
+      mongodb: {condition: service_healthy}
+      rabbitmq: {condition: service_healthy}
+    environment:
+      <<: *rabbit
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/investwise_investment?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Kolkata
+      SPRING_DATASOURCE_USERNAME: investwise
+      SPRING_DATASOURCE_PASSWORD: investwise123
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb:27017/investwise_logs
+      # Same secret as the user service: it signs, this one only verifies.
+      INVESTWISE_JWT_SECRET: ${INVESTWISE_JWT_SECRET:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWYwMTIzNDU2Nzg5YWJjZGVm}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-rzp_test_placeholder}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-placeholder_secret}
+    ports: ["8082:8082"]
+    networks: [iwl]
+
+  api-gateway:
+    build:
+      context: ./backend
+      dockerfile: api-gateway/Dockerfile
+    container_name: iwl-api-gateway
+    restart: unless-stopped
+    depends_on:
+      user-service: {condition: service_started}
+      investment-service: {condition: service_started}
+    environment:
+      USER_SERVICE_URL: http://user-service:8081
+      INVESTMENT_SERVICE_URL: http://investment-service:8082
+      CORS_ORIGINS: http://localhost:5173
+    ports: ["8080:8080"]
+    networks: [iwl]
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Empty base URL => same-origin calls, which nginx proxies to the
+        # gateway. No CORS in the container stack.
+        VITE_API_URL: ""
+    container_name: iwl-frontend
+    restart: unless-stopped
+    depends_on: [api-gateway]
+    ports: ["5173:80"]
+    networks: [iwl]
+
+volumes:
+  mysql_data:
+  mongo_data:
+  rabbit_data:
+
+networks:
+  iwl:
+    driver: bridge

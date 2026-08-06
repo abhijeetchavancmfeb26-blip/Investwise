@@ -11,7 +11,6 @@
     <artifactId>api-gateway</artifactId>
     <name>InvestWise-Lite :: API Gateway</name>
 
-
     <dependencies>
         <dependency>
             <groupId>org.springframework.cloud</groupId>

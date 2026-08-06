@@ -297,8 +297,12 @@ public class SubscriptionService {
 
     /** Tells the User Service to refresh its cached tier. */
     private void publishTier(Long userId, Enums.Tier tier, String planName) {
-        rabbit.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.RK_SUBSCRIPTION_CHANGED,
-                new Events.SubscriptionChanged(userId, tier.name(), planName));
+        try {
+            rabbit.convertAndSend(RabbitConfig.EXCHANGE, RabbitConfig.RK_SUBSCRIPTION_CHANGED,
+                    new Events.SubscriptionChanged(userId, tier.name(), planName));
+        } catch (Exception ex) {
+            log.warn("Failed to publish subscription event to RabbitMQ for user {}: {}", userId, ex.getMessage());
+        }
     }
 
     /** Sequential per financial year, e.g. {@code IW/2026-27/000042}. */
